@@ -100,7 +100,7 @@
           <!-- Date -->
           <span class="date-time info">On
             <span class="date">2019-03-01</span>
-            <span class="time">17:58:23</span>
+            <span class="time">18:51:26</span>
           </span>
           
         </div>
@@ -263,7 +263,7 @@
 </ul>
 <p><strong>5. 压缩使用</strong></p>
 <p><em>Job 输出文件按照 block 以 GZip 的方式进行压缩：</em></p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">set mapreduce.output.fileoutputformat.compress=true // 默认值是 false</span><br><span class="line"></span><br><span class="line">set mapreduce.output.fileoutputformat.compress.type=BLOCK // 默认值是 Record</span><br><span class="line"></span><br><span class="line">set mapreduce.output.fileoutputformat.compress.codec=org.apache.hadoop.io.compress.GzipCodec // 默认值是 org.apache.hadoop.io.compress.DefaultCodec</span><br></pre></td></tr></table></figure>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">set mapreduce.output.fileoutputformat.compress=true; // 默认值是 false</span><br><span class="line"></span><br><span class="line">set mapreduce.output.fileoutputformat.compress.type=BLOCK; // 默认值是 Record</span><br><span class="line"></span><br><span class="line">set mapreduce.output.fileoutputformat.compress.codec=org.apache.hadoop.io.compress.GzipCodec; // 默认值是 org.apache.hadoop.io.compress.DefaultCodec</span><br></pre></td></tr></table></figure>
 <p><em>Map 输出结果也以 Gzip 进行压缩：</em><br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">set mapred.map.output.compress=true</span><br><span class="line"></span><br><span class="line">set mapreduce.map.output.compress.codec=org.apache.hadoop.io.compress.GzipCodec // 默认值是 org.apache.hadoop.io.compress.DefaultCodec</span><br></pre></td></tr></table></figure></p>
 <p><em>对 Hive 输出结果和中间都进行压缩</em>：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">set hive.exec.compress.output=true // 默认值是 false，不压缩</span><br><span class="line"></span><br><span class="line">set hive.exec.compress.intermediate=true // 默认值是 false，为 true 时 MR 设置的压缩才启用</span><br></pre></td></tr></table></figure></p>
 <hr>
@@ -308,12 +308,12 @@
 <ul>
 <li><p>开启Map端聚合参数设置</p>
 <p>(1) 是否在Map端进行聚合，默认为True</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> hive.map.aggr = <span class="literal">true</span>;</span><br></pre></td></tr></table></figure>
+ <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> hive.map.aggr = <span class="literal">true</span>;</span><br></pre></td></tr></table></figure>
 <p>(2) 在Map端进行聚合操作的条数数目</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> hive.groupby.mapeggr.checkinterval = <span class="number">100000</span></span><br></pre></td></tr></table></figure>
+ <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> hive.groupby.mapeggr.checkinterval = <span class="number">100000</span></span><br></pre></td></tr></table></figure>
 </li>
 </ul>
-<p> (3) 有数据倾斜时进行负载均衡，默认为false<br> <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> hive.groupby.skewindata = <span class="literal">true</span>;</span><br></pre></td></tr></table></figure></p>
+<p> (3) 有数据倾斜时进行负载均衡，默认为false<br>  <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> hive.groupby.skewindata = <span class="literal">true</span>;</span><br></pre></td></tr></table></figure></p>
 <p> 当选项设定为 true，生成的查询计划会有两个MR Job。第一个MR Job中，Map的输出结果会随机分布到Reduce中，每个Reduce做部分聚合操作，并输出结果，这样处理的结果是相同的Group By Key有可能被分发到不同的Reduce中，从而达到负载均衡的目的；第二个MR Job再根据预处理的数据结果按照Group By Key分布到Reduce中（这个过程可以保证相同的Group By Key被分布到同一个Reduce中），最后完成最终的聚合操作。</p>
 <hr>
 <p><strong>5.  Count(distinct)</strong></p>

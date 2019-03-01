@@ -100,7 +100,7 @@
           <!-- Date -->
           <span class="date-time info">On
             <span class="date">2019-03-01</span>
-            <span class="time">17:55:37</span>
+            <span class="time">17:58:23</span>
           </span>
           
         </div>
@@ -110,8 +110,6 @@
         <div class="post-content">
           <hr>
 <p><em>由于面试中经常被问到hiveSQL如何调优，但是仅仅对优化有一个模糊的概念，始终没有对hive SQL调优有具体的总结。所以抽这个节点总结一下如何优化自己的sql。达到事半功倍的效果。</em></p>
-<p><a href="https://blog.csdn.net/zdy0_2004/article/details/81613230" target="_blank" rel="noopener">https://blog.csdn.net/zdy0_2004/article/details/81613230</a></p>
-<p><a href="https://www.cnblogs.com/duanxingxing/p/6874318.html" target="_blank" rel="noopener">https://www.cnblogs.com/duanxingxing/p/6874318.html</a></p>
 <hr>
 <h2 id="fetch抓取"><a href="#fetch抓取" class="headerlink" title="fetch抓取"></a>fetch抓取</h2><p><strong>理论分析：</strong></p>
 <p>Fetch抓取是指，Hive中对某些情况的查询可以不必使用MapReduce计算。例如：SELECT * FROM employees;在这种情况下，Hive可以简单地读取employee对应的存储目录下的文件，然后输出查询结果到控制台。</p>

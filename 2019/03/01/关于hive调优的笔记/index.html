@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+  <!-- Html Head Tag-->
+  <head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content>
+  <meta name="author" content="John Doe">
+  <!-- Open Graph Data -->
+  <meta property="og:title" content="关于hive调优的笔记">
+  <meta property="og:description" content>
+  <meta property="og:site_name" content="Hexo">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="http://yoursite.com">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+
+  <!-- Site Title -->
+  <title>Hexo</title>
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <!-- Custom CSS -->
+  
+  <link rel="stylesheet" href="/css/style.light.css">
+
+  <!-- Google Analytics -->
+  
+
+</head>
+
+  <body>
+    <!-- Page Header -->
+
+
+<header class="site-header header-background" style="background-image: url(/img/default-banner-dark.jpg)">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <div class="page-title with-background-image">
+          <p class="title">关于hive调优的笔记</p>
+          <p class="subtitle"></p>
+        </div>
+        <div class="site-menu with-background-image">
+          <ul>
+            
+              <li>
+                <a href="/">
+                  
+                  Home
+                  
+                </a>
+              </li>
+            
+              <li>
+                <a href="/archives">
+                  
+                  Archives
+                  
+                </a>
+              </li>
+            
+              <li>
+                <a href="https://github.com/<your-github-username>">
+                  
+                  Github
+                  
+                </a>
+              </li>
+            
+              <li>
+                <a href="mailto:<your-email-address>">
+                  
+                  Email
+                  
+                </a>
+              </li>
+            
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<article>
+  <div class="container typo">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <div class="post-info text-muted">
+          
+            <!-- Author -->
+            <span class="author info">By John Doe</span>
+          
+          <!-- Date -->
+          <span class="date-time info">On
+            <span class="date">2019-03-01</span>
+            <span class="time">17:55:37</span>
+          </span>
+          
+        </div>
+        <!-- Tags -->
+        
+        <!-- Post Main Content -->
+        <div class="post-content">
+          <hr>
+<p><em>由于面试中经常被问到hiveSQL如何调优，但是仅仅对优化有一个模糊的概念，始终没有对hive SQL调优有具体的总结。所以抽这个节点总结一下如何优化自己的sql。达到事半功倍的效果。</em></p>
+<p><a href="https://blog.csdn.net/zdy0_2004/article/details/81613230" target="_blank" rel="noopener">https://blog.csdn.net/zdy0_2004/article/details/81613230</a></p>
+<p><a href="https://www.cnblogs.com/duanxingxing/p/6874318.html" target="_blank" rel="noopener">https://www.cnblogs.com/duanxingxing/p/6874318.html</a></p>
+<hr>
+<h2 id="fetch抓取"><a href="#fetch抓取" class="headerlink" title="fetch抓取"></a>fetch抓取</h2><p><strong>理论分析：</strong></p>
+<p>Fetch抓取是指，Hive中对某些情况的查询可以不必使用MapReduce计算。例如：SELECT * FROM employees;在这种情况下，Hive可以简单地读取employee对应的存储目录下的文件，然后输出查询结果到控制台。</p>
+<p>在hive-default.xml.template文件中hive.fetch.task.conversion默认是more，老版本hive默认是minimal，该属性修改为more以后，在全局查找、字段查找、limit查找等都不走mapreduce</p>
+<table>
+<thead>
+<tr>
+<th>xml配置</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>set hive.fetch.task.conversion=none;</td>
+<td>执行查询语句，会走mapreduce程序</td>
+</tr>
+<tr>
+<td>set hive.fetch.task.conversion=more;</td>
+<td>执行查询语句，不会走mapreduce程序</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="本地模式"><a href="#本地模式" class="headerlink" title="本地模式"></a>本地模式</h2><p><strong>理论分析</strong></p>
+<p>Hive 在集群上查询时，默认是在集群上 N 台机器上运行， 需要多个机器进行协调运行，这 个方式很好地解决了大数据量的查询问题。但是当 Hive 查询处理的数据量比较小时，其实没有必要启动分布式模式去执行，因为以分布式方式执行就涉及到跨网络传输、多节点协调 等，并且消耗资源。这个时间可以只使用本地模式来执行 mapreduce job，只在一台机器上执行，速度会很快。启动本地模式涉及到三个参数：</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>默认值</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>hive.exec.mode.local.aotu</td>
+<td>false</td>
+<td>让hive决定是否在本地模式自动运行</td>
+</tr>
+<tr>
+<td>hive.exec.mode.local.aotu.input.files.max</td>
+<td>4</td>
+<td>不启用本地模式的task最大个数</td>
+</tr>
+<tr>
+<td>hive.exec.mode.local.aotu.inputbytes.max</td>
+<td>128m</td>
+<td>不启用本地模式的最大输入文件大小</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>set hive.exec.mode.local.auto=true 是打开 hive 自动判断是否启动本地模式的开关，但是只 是打开这个参数并不能保证启动本地模式，要当 map 任务数不超过</p>
+<p>hive.exec.mode.local.auto.input.files.max 的个数并且 map 输入文件大小不超过</p>
+<p>hive.exec.mode.local.auto.inputbytes.max 所指定的大小时，才能启动本地模式。</p>
+<hr>
+<h2 id="Hive的压缩存储"><a href="#Hive的压缩存储" class="headerlink" title="Hive的压缩存储"></a>Hive的压缩存储</h2><p><strong>1.  合理利用文件存储格式</strong></p>
+<p>创建表时，尽量使用 orc、parquet 这些列式存储格式，因为列式存储的表，每一列的数据在物理上是存储在一起的，Hive查询时会只遍历需要列数据，大大减少处理的数据量</p>
+<p><strong>2. 压缩的原因</strong></p>
+<p>Hive 最终是转为 MapReduce 程序来执行的，而MapReduce 的性能瓶颈在于网络 IO 和 磁盘 IO，要解决性能瓶颈，最主要的是减少数据量，对数据进行压缩是个好的方式。压缩 虽然是减少了数据量，但是压缩过程要消耗CPU的，但是在Hadoop中， 往往性能瓶颈不在于CPU，CPU压力并不大，所以压缩充分利用了比较空闲的 CPU</p>
+<p><strong>3. 常用压缩方法对比</strong></p>
+<table>
+<thead>
+<tr>
+<th>压缩格式</th>
+<th>是否可拆分</th>
+<th>是否自带</th>
+<th>压缩率</th>
+<th>速度</th>
+<th>是否hadoop自带</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gzip</td>
+<td>否</td>
+<td>是</td>
+<td>很高</td>
+<td>比较快</td>
+<td>是</td>
+</tr>
+<tr>
+<td>lzo</td>
+<td>是</td>
+<td>是</td>
+<td>比较高</td>
+<td>很快</td>
+<td>否，要安装</td>
+</tr>
+<tr>
+<td>snappy</td>
+<td>否</td>
+<td>是</td>
+<td>比较高</td>
+<td>很快</td>
+<td>否，要安装</td>
+</tr>
+<tr>
+<td>bzip2</td>
+<td>是</td>
+<td>否</td>
+<td>最高</td>
+<td>慢</td>
+<td>是</td>
+</tr>
+</tbody>
+</table>
+<p>==各个压缩方式所对应的class类==</p>
+<table>
+<thead>
+<tr>
+<th>压缩格式</th>
+<th>类</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Zlib</td>
+<td>org.apache.hadoop.io.compress.DefaultCodec</td>
+</tr>
+<tr>
+<td>Gzip</td>
+<td>org.apache.hadoop.io.compress.GzipCodec</td>
+</tr>
+<tr>
+<td>Bzip2</td>
+<td>org.apache.hadoop.io.compress.Bzip2Codec</td>
+</tr>
+<tr>
+<td>Lzo</td>
+<td>org.apache.hadoop.io.compress.lzo.LzoCodec</td>
+</tr>
+<tr>
+<td>Lz4</td>
+<td>org.apache.hadoop.io.compress.Lz4Codec</td>
+</tr>
+<tr>
+<td>Snappy</td>
+<td>org.apache.hadoop.io.compress.SnappyCodec</td>
+</tr>
+</tbody>
+</table>
+<p><strong>4. 压缩方式的选择</strong></p>
+<ul>
+<li><p><em>压缩比率</em></p>
+</li>
+<li><p><em>压缩解压缩速度</em></p>
+</li>
+<li><p><em>是否支持 Split</em></p>
+</li>
+</ul>
+<p><strong>5. 压缩使用</strong></p>
+<p><em>Job 输出文件按照 block 以 GZip 的方式进行压缩：</em></p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">set mapreduce.output.fileoutputformat.compress=true // 默认值是 false</span><br><span class="line"></span><br><span class="line">set mapreduce.output.fileoutputformat.compress.type=BLOCK // 默认值是 Record</span><br><span class="line"></span><br><span class="line">set mapreduce.output.fileoutputformat.compress.codec=org.apache.hadoop.io.compress.GzipCodec // 默认值是 org.apache.hadoop.io.compress.DefaultCodec</span><br></pre></td></tr></table></figure>
+<p><em>Map 输出结果也以 Gzip 进行压缩：</em><br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">set mapred.map.output.compress=true</span><br><span class="line"></span><br><span class="line">set mapreduce.map.output.compress.codec=org.apache.hadoop.io.compress.GzipCodec // 默认值是 org.apache.hadoop.io.compress.DefaultCodec</span><br></pre></td></tr></table></figure></p>
+<p><em>对 Hive 输出结果和中间都进行压缩</em>：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">set hive.exec.compress.output=true // 默认值是 false，不压缩</span><br><span class="line"></span><br><span class="line">set hive.exec.compress.intermediate=true // 默认值是 false，为 true 时 MR 设置的压缩才启用</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="表的优化"><a href="#表的优化" class="headerlink" title="表的优化"></a>表的优化</h2><p><strong>1. 小表、大表Join</strong></p>
+<ul>
+<li>理论分析</li>
+</ul>
+<p>将key相对分散，并且数据量小的表放在join的左边，这样可以有效减少内存溢出错误发生的几率；再进一步，可以使用Group让小的维度表（1000条以下的记录条数）先进内存。在map端完成reduce。</p>
+<p>实际测试发现：新版的hive已经对小表JOIN大表和大表JOIN小表进行了优化。小表放在左边和右边已经没有明显区别。</p>
+<p>hive.auto.convert.join的默认值是true，即默认开启mapjoin优化</p>
+<p>hive.mapjoin.smalltable.filesize 默认值为2500000(25M),通过配置该属性来确定使用该优化的表的大小，如果表的大小小于此值就会被加载进内存中</p>
+<ul>
+<li>参数调优<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hive.auto.convert.join=false(关闭自动MAPJOIN转换操作)</span><br><span class="line">hive.ignore.mapjoin.hint=false(不忽略MAPJOIN标记)</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p><strong>2. 大表join大表</strong></p>
+<ul>
+<li>空key过滤</li>
+</ul>
+<p>我们在工作中时常会遇到两个大表之间的join，但是有的时候join会超时，或者报内存溢出的错误(Out of Memery)造成这样的原因很有可能是key对应的数据太多，而相同的key对应的数据会发送到同一个reduce上，导致内存不够。此时我们应该仔细分析这些异常的key，很多情况下，这些key对应的数据属于异常数据，我们需要在sql中进行过滤。例如key对应的字段为空时，将key为空值的数据先过滤出去再进行join。</p>
+<ul>
+<li>空key转换</li>
+</ul>
+<p>有时候某个key为空对应的数据很多，但是相应的数据不是异常数据，必须包含在join结果中，此时我们可以将表中的key为空的字段赋一个随机的值，使得数据随机均匀的分到不同的reduce上</p>
+<p><a href="https://blog.csdn.net/yeweiouyang/article/details/45665727" target="_blank" rel="noopener">hive大表join大表案例</a></p>
+<hr>
+<p><strong>3. Map join</strong></p>
+<ul>
+<li>理论分析</li>
+</ul>
+<p>如果不指定Mapjoin 或者不满足Mapjoin的条件，那么Hive解析器会将Join操作转化为Common join，而Common join会在Reduce端完成Join，容易发生数据倾斜，而使用MapJoin会将小表写入内存。在Map端进行join，避免reduce处理</p>
+<ul>
+<li>Mapjoin工作机制</li>
+</ul>
+<p><img src="https://images2018.cnblogs.com/blog/1385722/201806/1385722-20180602212416410-576548885.png" alt="image"></p>
+<p>首先是Task A，它是一个Local Task（在客户端本地执行的Task），负责扫描小表b的数据，将其转换成一个HashTable的数据结构，并写入本地的文件中，之后将该文件加载到DistributeCache中。</p>
+<p>接下来是Task B，该任务是一个没有Reduce的MR，启动MapTasks扫描大表a,在Map阶段，根据a的每一条记录去和DistributeCache中b表对应的HashTable关联，并直接输出结果。</p>
+<p>由于MapJoin没有Reduce，所以由Map直接输出结果文件，有多少个Map Task，就有多少个结果文件。</p>
+<hr>
+<p><strong>4. Group by</strong> </p>
+<p>默认情况下，Map阶段同一Key数据分发给一个reduce，当一个Key数据过大时就倾斜了，并不是所有的聚合操作都需要在Reduce端完成，很多聚合操作都可以在Map端进行部分聚合，最后在Reduce端得出最终结果。</p>
+<ul>
+<li><p>开启Map端聚合参数设置</p>
+<p>(1) 是否在Map端进行聚合，默认为True</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> hive.map.aggr = <span class="literal">true</span>;</span><br></pre></td></tr></table></figure>
+<p>(2) 在Map端进行聚合操作的条数数目</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> hive.groupby.mapeggr.checkinterval = <span class="number">100000</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p> (3) 有数据倾斜时进行负载均衡，默认为false<br> <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> hive.groupby.skewindata = <span class="literal">true</span>;</span><br></pre></td></tr></table></figure></p>
+<p> 当选项设定为 true，生成的查询计划会有两个MR Job。第一个MR Job中，Map的输出结果会随机分布到Reduce中，每个Reduce做部分聚合操作，并输出结果，这样处理的结果是相同的Group By Key有可能被分发到不同的Reduce中，从而达到负载均衡的目的；第二个MR Job再根据预处理的数据结果按照Group By Key分布到Reduce中（这个过程可以保证相同的Group By Key被分布到同一个Reduce中），最后完成最终的聚合操作。</p>
+<hr>
+<p><strong>5.  Count(distinct)</strong></p>
+<p>在进行Count(distinct)操作的时候，数据量小的时候无所谓，数据量大的情况下，由于COUNT DISTINCT操作需要用一个Reduce Task来完成，这一个Reduce需要处理的数据量太大，就会导致整个Job很难完成，一般COUNT DISTINCT使用先GROUP BY再COUNT的方式替换：</p>
+<hr>
+<p><strong>6. 动态分区调整</strong></p>
+<p>关系型数据库中，对分区表Insert数据时候，数据库自动会根据分区字段的值，将数据插入到相应的分区中，Hive中也提供了类似的机制，即动态分区(Dynamic Partition)，只不过，使用Hive的动态分区，需要进行相应的配置。</p>
+<ul>
+<li>开启动态分区功能，默认为true(开启)</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">set hive.dynamic.partition = true;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>设置为非严格模式(动态分区的模式，默认strict，表示必须指定至少一个分区为静态分区，nonstrict模式表示允许所有的分区字段都可以使用动态分区)</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">set hive.exec.dynamic.partition.mode = nonstrict;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>在所有执行MR的节点上，最大一共可以创建多少动态分区。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">set hive.exec.dynamic.partitions = 1000;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在每个执行MR的节点上，最大可以创建多少个动态分区。该参数需要根据实际的数据来设定。比如：源数据中包含了一年的数据，即day字段有365个值，那么该参数就需要设置成大于365，如果使用默认值100，则会报错。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">set hive.exec.max.dynamic.partitions.pernode = 100;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>整个MR Job中，最大可以创建多少个HDFS文件。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">set hive.exec.max.created.files = 100000;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>当有空分区生成时，是否抛出异常。一般不需要设置。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">set hive.error.on.empty.partition=false;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<hr>
+<p><strong>7. 优化 in/exists 语句</strong></p>
+<p>hive虽然支持in和exists操作，但还是推荐使用hive的一个高效替代方案：<strong>==left semi join==</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">--in/exists</span></span><br><span class="line"><span class="keyword">select</span> a.id, a.name <span class="keyword">from</span> a <span class="keyword">where</span> a.id <span class="keyword">in</span> (<span class="keyword">select</span> b.id <span class="keyword">from</span> b);</span><br><span class="line"><span class="keyword">select</span> a.id, a.name <span class="keyword">from</span> a <span class="keyword">where</span> <span class="keyword">exists</span> (<span class="keyword">select</span> <span class="keyword">id</span> <span class="keyword">from</span> b <span class="keyword">where</span> a.id = b.id);</span><br><span class="line"></span><br><span class="line"><span class="comment">--hive left semi join</span></span><br><span class="line"><span class="keyword">select</span> a.id, a.name <span class="keyword">from</span> a <span class="keyword">left</span> <span class="keyword">semi</span> <span class="keyword">join</span> b <span class="keyword">on</span> a.id = b.id;</span><br></pre></td></tr></table></figure>
+<hr>
+<p><strong>8. 排序选择</strong></p>
+<p><strong>cluster by</strong>：对同一字段分桶并排序，不能和 sort by 连用</p>
+<p><strong>distribute by + sort by</strong>：分桶，保证同一字段值只存在一个结果文件当中，结合 sort by 保证 每个 reduceTask 结果有序</p>
+<p><strong>sort by</strong>：单机排序，单个 reduce 结果有序</p>
+<p><strong>order by</strong>：全局排序，缺陷是只能使用一个 reduce</p>
+<hr>
+<p><strong>9. 合并 MapReduce操作</strong></p>
+<p>Multi-group by 是hive的一个非常好的特性，它使得Hive利用中间结果变得非常方便</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*下列查询语句使用了 multi-group by 特性连续 group by 了 2 次数据，</span></span><br><span class="line"><span class="comment">使用不同的 group by key。 这一特性可以减少一次 MapReduce 操作*/</span></span><br><span class="line">FROM (<span class="keyword">SELECT</span> a.status, b.school, b.gender <span class="keyword">FROM</span> status_updates a <span class="keyword">JOIN</span> <span class="keyword">profiles</span> b <span class="keyword">ON</span> (a.userid =</span><br><span class="line">b.userid <span class="keyword">and</span> a.ds=<span class="string">'2009-03-20'</span> ) ) subq1</span><br><span class="line"><span class="keyword">INSERT</span> OVERWRITE <span class="keyword">TABLE</span> gender_summary <span class="keyword">PARTITION</span>(ds=<span class="string">'2009-03-20'</span>)</span><br><span class="line"><span class="keyword">SELECT</span> subq1.gender, <span class="keyword">COUNT</span>(<span class="number">1</span>) <span class="keyword">GROUP</span> <span class="keyword">BY</span> subq1.gender</span><br><span class="line"><span class="keyword">INSERT</span> OVERWRITE <span class="keyword">TABLE</span> school_summary <span class="keyword">PARTITION</span>(ds=<span class="string">'2009-03-20'</span>)</span><br><span class="line"><span class="keyword">SELECT</span> subq1.school, <span class="keyword">COUNT</span>(<span class="number">1</span>) <span class="keyword">GROUP</span> <span class="keyword">BY</span> subq1.school</span><br></pre></td></tr></table></figure>
+<hr>
+<p><strong>10. 合理利用分桶：Bucketing 和 Sampling</strong></p>
+<p>Bucket 是指将数据以指定列的值为 key 进行 hash，hash 到指定数目的桶中。这样就可以支持高效采样了。如下例就是以 userid 这一列为 bucket 的依据，共设置 32 个 buckets<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> PAGE_VIEW(</span><br><span class="line">VIEWTIME 		<span class="built_in">INT</span>, </span><br><span class="line">USERID 			<span class="built_in">BIGINT</span>,</span><br><span class="line">PAGE_URL 		<span class="keyword">STRING</span>, </span><br><span class="line">REFERRER_URL 	<span class="keyword">STRING</span>,</span><br><span class="line">IP 				<span class="keyword">STRING</span> 	<span class="keyword">COMMENT</span> <span class="string">'IP ADDRESS OF THE USER'</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">COMMENT</span> <span class="string">'THIS IS THE PAGE VIEW TABLE'</span></span><br><span class="line">PARTITIONED <span class="keyword">BY</span>( DT <span class="keyword">STRING</span>, </span><br><span class="line">				COUNTRY <span class="keyword">STRING</span></span><br><span class="line">				)</span><br><span class="line">CLUSTERED <span class="keyword">BY</span>(USERID) </span><br><span class="line">SORTED <span class="keyword">BY</span>(VIEWTIME) <span class="keyword">INTO</span> <span class="number">32</span> BUCKETS</span><br><span class="line"><span class="keyword">ROW</span> <span class="keyword">FORMAT</span> <span class="keyword">DELIMITED</span></span><br><span class="line"><span class="keyword">FIELDS</span> <span class="keyword">TERMINATED</span> <span class="keyword">BY</span> <span class="string">'1'</span></span><br><span class="line">COLLECTION ITEMS <span class="keyword">TERMINATED</span> <span class="keyword">BY</span> <span class="string">'2'</span></span><br><span class="line"><span class="keyword">MAP</span> <span class="keyword">KEYS</span> <span class="keyword">TERMINATED</span> <span class="keyword">BY</span> <span class="string">'3'</span></span><br><span class="line"><span class="keyword">STORED</span> <span class="keyword">AS</span> SEQUENCEFILE;</span><br></pre></td></tr></table></figure></p>
+<p> 通常情况下，Sampling 在全体数据上进行采样，这样效率自然就低，它要去访问所有数据。 而如果一个表已经对某一列制作了 bucket，就可以采样所有桶中指定序号的某个桶，这就减少了访问量。</p>
+<p>如下例所示就是采样了 page_view 中 32 个桶中的第三个桶的全部数据：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> page_view <span class="keyword">TABLESAMPLE</span>(<span class="keyword">BUCKET</span> <span class="number">3</span> <span class="keyword">OUT</span> <span class="keyword">OF</span> <span class="number">32</span>);</span><br></pre></td></tr></table></figure></p>
+<p>如下例所示就是采样了 page_view 中 32 个桶中的第三个桶的一半数据：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> page_view <span class="keyword">TABLESAMPLE</span>(<span class="keyword">BUCKET</span> <span class="number">3</span> <span class="keyword">OUT</span> <span class="keyword">OF</span> <span class="number">64</span>);</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="数据倾斜"><a href="#数据倾斜" class="headerlink" title="数据倾斜"></a>数据倾斜</h2><p><strong>1. Map数</strong></p>
+<ul>
+<li>通常情况下，作业会通过input的目录产生一个或者多个map任务。主要的决定因素有：input的文件总个数，input的文件大小，集群设置的文件块大小。</li>
+</ul>
+<p>在 MapReduce 的编程案例中，我们得知，一个MR Job的 MapTask 数量是由输入分片 InputSplit 决定的。而输入分片是由 FileInputFormat.getSplit()决定的。一个输入分片对应一个 MapTask， 而输入分片是由三个参数决定的：<br><img src="https://images2018.cnblogs.com/blog/1228818/201804/1228818-20180415151017302-1064661736.png" alt="image"><br>输入分片大小的计算是这么计算出来的：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> splitSize = Math.max(minSize,Math.min(maxSize,blockSize))</span><br></pre></td></tr></table></figure></p>
+<p>默认情况下，输入分片大小和 HDFS 集群默认数据块大小一致，也就是默认一个数据块，启用一个 MapTask 进行处理，这样做的好处是避免了服务器节点之间的数据传输，提高 job 处理效率。</p>
+<ul>
+<li>是不是map数越多越好？（Map 数过大）</li>
+</ul>
+<p>答案是否定的。如果一个任务有很多小文件（远远小于块大小128m），则每个小文件也会被当做一个块，用一个map任务来完成，而一个map任务启动和初始化的时间远远大于逻辑处理的时间，就会造成很大的资源浪费。而且，同时可执行的map数是受限的。</p>
+<ul>
+<li>是不是保证每个map处理接近128m的文件块，就高枕无忧了？（Map 数过小）</li>
+</ul>
+<p>答案也是不一定。比如有一个127m的文件，正常会用一个map去完成，但这个文件只有一个或者两个小字段，却有几千万的记录，如果map处理的逻辑比较复杂，用一个map任务去做，肯定也比较耗时。</p>
+<p><strong>2. 小文件进行合并</strong></p>
+<p>在map执行前合并小文件，减少map数：CombineHiveInputFormat具有对小文件进行合并的功能（系统默认的格式）。HiveInputFormat没有对小文件合并功能</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">set hive.merge.mapfiles = true                   ##在 map only 的任务结束时合并小文件</span><br><span class="line">set hive.merge.mapredfiles = false               ## true 时在 MapReduce 的任务结束时合并小文件</span><br><span class="line">set hive.merge.size.per.task = 256*1000*1000     ##合并文件的大小</span><br><span class="line">set mapred.max.split.size=256000000;             ##每个 Map 最大分割大小</span><br><span class="line">set mapred.min.split.size.per.node=1;            ##一个节点上 split 的最少值</span><br><span class="line">set hive.input.format=org.apache.hadoop.hive.ql.io.CombineHiveInputFormat;    ##执行Map前进行小文件合并</span><br></pre></td></tr></table></figure>
+<p><strong>3. 复杂文件增加Map数</strong></p>
+<p>当input的文件都很大，任务逻辑复杂，map执行非常慢的时候，可以考虑增加Map数，来使得每个map处理的数据量减少，从而提高任务的执行效率。</p>
+<p>增加map的方法为：根据computeSliteSize(Math.max(minSize,Math.min(maxSize,blocksize)))=blocksize=128M公式，调整maxSize最大值。让maxSize最大值低于blocksize就可以增加map的个数。</p>
+<p><strong>4. Reduce数</strong></p>
+<p>Hadoop MapReduce 程序中，reducer 个数的设定极大影响执行效率，这使得 Hive 怎样决定 reducer 个数成为一个关键问题。遗憾的是 Hive 的估计机制很弱，不指定 reducer 个数的情况下，Hive 会猜测确定一个 reducer 个数，基于以下两个设定：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1、hive.exec.reducers.bytes.per.reducer（默认为 256000000）</span><br><span class="line"></span><br><span class="line">2、hive.exec.reducers.max（默认为 1009）</span><br><span class="line"></span><br><span class="line">3、mapreduce.job.reduces=-1（设置一个常量 reducetask 数量）</span><br></pre></td></tr></table></figure></p>
+<p>计算 reducer 数的公式很简单： N=min(参数 2，总输入数据量/参数 1) 通常情况下，有必要手动指定 reducer 个数。考虑到 map 阶段的输出数据量通常会比输入有 大幅减少，因此即使不设定 reducer 个数，重设参数 2 还是必要的。</p>
+<p>==<strong>依据 Hadoop 的经验，可以将参数 2 设定为 0.95*(集群中 datanode 个数)。</strong>==</p>
+<ul>
+<li>调整reduce个数方法</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">--每个Reduce处理的数据量默认是256MB</span><br><span class="line">hive.exec.reducers.bytes.per.reducer=256000000</span><br><span class="line"></span><br><span class="line">--每个任务最大的reduce数，默认为1009</span><br><span class="line">hive.exec.reducers.max=1009</span><br><span class="line"></span><br><span class="line">--计算reducer数的公式</span><br><span class="line">N=min(参数2，总输入数据量/参数1)</span><br></pre></td></tr></table></figure>
+<ul>
+<li>调整reduce个数方法二</li>
+</ul>
+<p>在hadoop的mapred-default.xml文件中修改</p>
+<p>设置每个job的Reduce个数<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">set mapreduce.job.reduces = 15;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>reduce个数并不是越多越好</li>
+</ul>
+<p>1）过多的启动和初始化reduce也会消耗时间和资源；</p>
+<p>2）另外，有多少个reduce，就会有多少个输出文件，如果生成了很多个小文件，那么如果这些小文件作为下一个任务的输入，则也会出现小文件过多的问题；</p>
+<p><strong>5. 并行执行</strong> </p>
+<p>Hive会将一个查询转化成一个或者多个阶段。这样的阶段可以是MapReduce阶段、抽样阶段、合并阶段、limit阶段。或者Hive执行过程中可能需要的其他阶段。默认情况下，Hive一次只会执行一个阶段。不过，某个特定的job可能包含众多的阶段，而这些阶段可能并非完全互相依赖的，也就是说有些阶段是可以并行执行的，这样可能使得整个job的执行时间缩短。不过，如果有更多的阶段可以并行执行，那么job可能就越快完成。</p>
+<p>==通过设置参数hive.exec.parallel值为true，就可以开启并发执行。不过，在共享集群中，需要注意下，如果job中并行阶段增多，那么集群利用率就会增加==</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">set hive.exec.parallel=true;              //打开任务并行执行</span><br><span class="line"></span><br><span class="line">set hive.exec.parallel.thread.number=16;  //同一个sql允许最大并行度，默认为8。</span><br></pre></td></tr></table></figure>
+<p>当然，得是在系统资源比较空闲的时候才有优势，否则，没资源，并行也起不来。</p>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+
+
+
+    <!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <p class="copyright text-muted">
+          Theme By <a target="_blank" href="https://github.com/levblanc">Levblanc.</a>
+          Inspired By <a target="_blank" href="https://github.com/klugjo/hexo-theme-clean-blog">Clean Blog.</a>
+        </p><p class="copyright text-muted">
+          Powered By <a target="_blank" href="https://hexo.io/">Hexo.</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    <!-- After Footer Scripts -->
+<script src="/js/highlight.pack.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function(event) {
+    var codeBlocks = Array.prototype.slice.call(document.getElementsByTagName('pre'))
+    codeBlocks.forEach(function(block, index) {
+      hljs.highlightBlock(block);
+    });
+  });
+</script>
+
+  </body>
+</html>
+

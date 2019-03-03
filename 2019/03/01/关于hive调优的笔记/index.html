@@ -1,114 +1,95 @@
 <!DOCTYPE html>
 <html>
-  <!-- Html Head Tag-->
-  <head><meta name="generator" content="Hexo 3.8.0">
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content>
-  <meta name="author" content="John Doe">
-  <!-- Open Graph Data -->
-  <meta property="og:title" content="关于hive调优的笔记">
-  <meta property="og:description" content>
-  <meta property="og:site_name" content="Hexo">
-  <meta property="og:type" content="article">
-  <meta property="og:image" content="http://yoursite.com">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  
+
+  
+  <title>关于hive调优的笔记 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="由于面试中经常被问到hiveSQL如何调优，但是仅仅对优化有一个模糊的概念，始终没有对hive SQL调优有具体的总结。所以抽这个节点总结一下如何优化自己的sql。达到事半功倍的效果。  fetch抓取理论分析： Fetch抓取是指，Hive中对某些情况的查询可以不必使用MapReduce计算。例如：SELECT * FROM employees;在这种情况下，Hive可以简单地读取employ">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于hive调优的笔记">
+<meta property="og:url" content="http://yoursite.com/2019/03/01/关于hive调优的笔记/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="由于面试中经常被问到hiveSQL如何调优，但是仅仅对优化有一个模糊的概念，始终没有对hive SQL调优有具体的总结。所以抽这个节点总结一下如何优化自己的sql。达到事半功倍的效果。  fetch抓取理论分析： Fetch抓取是指，Hive中对某些情况的查询可以不必使用MapReduce计算。例如：SELECT * FROM employees;在这种情况下，Hive可以简单地读取employ">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="https://images2018.cnblogs.com/blog/1385722/201806/1385722-20180602212416410-576548885.png">
+<meta property="og:image" content="https://images2018.cnblogs.com/blog/1228818/201804/1228818-20180415151017302-1064661736.png">
+<meta property="og:updated_time" content="2019-03-01T10:51:11.161Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="关于hive调优的笔记">
+<meta name="twitter:description" content="由于面试中经常被问到hiveSQL如何调优，但是仅仅对优化有一个模糊的概念，始终没有对hive SQL调优有具体的总结。所以抽这个节点总结一下如何优化自己的sql。达到事半功倍的效果。  fetch抓取理论分析： Fetch抓取是指，Hive中对某些情况的查询可以不必使用MapReduce计算。例如：SELECT * FROM employees;在这种情况下，Hive可以简单地读取employ">
+<meta name="twitter:image" content="https://images2018.cnblogs.com/blog/1385722/201806/1385722-20180602212416410-576548885.png">
   
     <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
   
   
     <link rel="icon" href="/favicon.png">
   
-
-  <!-- Site Title -->
-  <title>Hexo</title>
-
-  <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="/css/bootstrap.min.css">
-  <!-- Custom CSS -->
   
-  <link rel="stylesheet" href="/css/style.light.css">
-
-  <!-- Google Analytics -->
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
   
-
+  <link rel="stylesheet" href="/css/style.css">
 </head>
-
-  <body>
-    <!-- Page Header -->
-
-
-<header class="site-header header-background" style="background-image: url(/img/default-banner-dark.jpg)">
-  <div class="container">
-    <div class="row">
-      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
-        <div class="page-title with-background-image">
-          <p class="title">关于hive调优的笔记</p>
-          <p class="subtitle"></p>
-        </div>
-        <div class="site-menu with-background-image">
-          <ul>
-            
-              <li>
-                <a href="/">
-                  
-                  Home
-                  
-                </a>
-              </li>
-            
-              <li>
-                <a href="/archives">
-                  
-                  Archives
-                  
-                </a>
-              </li>
-            
-              <li>
-                <a href="https://github.com/chenyihe">
-                  
-                  Github
-                  
-                </a>
-              </li>
-            
-              <li>
-                <a href="mailto:15215260433@163.com">
-                  
-                  Email
-                  
-                </a>
-              </li>
-            
-          </ul>
-        </div>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
       </div>
     </div>
   </div>
 </header>
-
-<article>
-  <div class="container typo">
-    <div class="row">
-      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
-        <div class="post-info text-muted">
-          
-            <!-- Author -->
-            <span class="author info">By John Doe</span>
-          
-          <!-- Date -->
-          <span class="date-time info">On
-            <span class="date">2019-03-01</span>
-            <span class="time">21:03:30</span>
-          </span>
-          
-        </div>
-        <!-- Tags -->
+      <div class="outer">
+        <section id="main"><article id="post-关于hive调优的笔记" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2019/03/01/关于hive调优的笔记/" class="article-date">
+  <time datetime="2019-03-01T09:54:47.000Z" itemprop="datePublished">2019-03-01</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
         
-        <!-- Post Main Content -->
-        <div class="post-content">
-          <hr>
+  
+    <h1 class="article-title" itemprop="name">
+      关于hive调优的笔记
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <hr>
 <p><em>由于面试中经常被问到hiveSQL如何调优，但是仅仅对优化有一个模糊的概念，始终没有对hive SQL调优有具体的总结。所以抽这个节点总结一下如何优化自己的sql。达到事半功倍的效果。</em></p>
 <hr>
 <h2 id="fetch抓取"><a href="#fetch抓取" class="headerlink" title="fetch抓取"></a>fetch抓取</h2><p><strong>理论分析：</strong></p>
@@ -408,42 +389,103 @@
 <figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">set hive.exec.parallel=true;              //打开任务并行执行</span><br><span class="line"></span><br><span class="line">set hive.exec.parallel.thread.number=16;  //同一个sql允许最大并行度，默认为8。</span><br></pre></td></tr></table></figure>
 <p>当然，得是在系统资源比较空闲的时候才有优势，否则，没资源，并行也起不来。</p>
 
-        </div>
-      </div>
+      
     </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2019/03/01/关于hive调优的笔记/" data-id="cjssy3d2x0001ccuapft9o6p5" class="article-share-link">Share</a>
+      
+      
+    </footer>
   </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2019/03/01/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Hello World</div>
+    </a>
+  
+</nav>
+
+  
 </article>
 
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a></li></ul>
+    </div>
+  </div>
 
 
-    <!-- Footer -->
-<footer>
-  <div class="container">
-    <div class="row">
-      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
-        <p class="copyright text-muted">
-          Theme By <a target="_blank" href="https://github.com/levblanc">Levblanc.</a>
-          Inspired By <a target="_blank" href="https://github.com/klugjo/hexo-theme-clean-blog">Clean Blog.</a>
-        </p><p class="copyright text-muted">
-          Powered By <a target="_blank" href="https://hexo.io/">Hexo.</a>
-        </p>
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2019/03/01/关于hive调优的笔记/">关于hive调优的笔记</a>
+          </li>
+        
+          <li>
+            <a href="/2019/03/01/hello-world/">Hello World</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
       </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2019 John Doe<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
 </footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 
 
-    <!-- After Footer Scripts -->
-<script src="/js/highlight.pack.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function(event) {
-    var codeBlocks = Array.prototype.slice.call(document.getElementsByTagName('pre'))
-    codeBlocks.forEach(function(block, index) {
-      hljs.highlightBlock(block);
-    });
-  });
-</script>
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
 
-  </body>
+
+<script src="/js/script.js"></script>
+
+
+
+  </div>
+</body>
 </html>
-
